@@ -1,7 +1,7 @@
 import os
 import time
 from termcolor import colored
-import math 
+import math #round function
 
 
 class Canvas:
@@ -9,12 +9,14 @@ class Canvas:
         self._x = width
         self._y = height
         self._canvas = [[' ' for y in range(self._y)] for x in range(self._x)]
-
+    
+    # convert the float to integer positions for discrete steps
     def hitsWall(self, point):
-        return round(point[0]) < 0 or round(point[0]) >= self._x or round(point[1]) < 0 or round(point[1]) >= self._y
-
+        return round(point[0])<0 or round(point[0])>=self._x or round(point[1])<0 or round(point[1])>=self._y
+    
+    # convert the float to integer positions for discrete steps
     def setPos(self, pos, mark):
-        self._canvas[round(pos[0])][round(pos[1])] = mark
+        self._canvas[round(pos[0])] [round(pos[1])] = mark
 
     def clear(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -32,18 +34,23 @@ class TerminalScribe:
         self.framerate = 0.05
         self.pos = [0, 0]
 
-        self.direction = [0, 1]
+        self.direction = [0, 0]#new var instead of pos[]
 
     def setDegrees(self, degrees):
         radians = (degrees/180) * math.pi 
         self.direction = [math.sin(radians), -math.cos(radians)]
 
+    def forward(self):
+        pos = [self.pos[0] + self.direction[0], self.pos[1] + self.direction[1]]
+        if not self.canvas.hitsWall(pos):
+            self.draw(pos)
+
     def up(self):
-        self.direction = [0, -1]
+        self.direction = [0, -1]#remove pos[]
         self.forward()
 
     def down(self):
-        self.direction = [0, 1]
+        self.direction = [0, 1]#replace pos[]
         self.forward()
 
     def right(self):
@@ -53,11 +60,10 @@ class TerminalScribe:
     def left(self):
         self.direction = [-1, 0]
         self.forward()
-
-    def forward(self):
-        pos = [self.pos[0] + self.direction[0], self.pos[1] + self.direction[1]]
-        if not self.canvas.hitsWall(pos):
-            self.draw(pos)
+    
+    #def diagonal(self):
+     #   self.direction = [1,1]
+      #  self.forward()
 
     def drawSquare(self, size):
         for i in range(size):
@@ -68,6 +74,8 @@ class TerminalScribe:
             self.left()
         for i in range(size):
             self.up()
+        #self.diagonal()
+        
 
     def draw(self, pos):
         self.canvas.setPos(self.pos, self.trail)
@@ -76,7 +84,7 @@ class TerminalScribe:
         self.canvas.print()
         time.sleep(self.framerate)
 
-canvas = Canvas(30, 30)
+canvas = Canvas(10, 10)
 scribe = TerminalScribe(canvas)
 scribe.setDegrees(135)
 for i in range(30):

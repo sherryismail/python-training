@@ -1,5 +1,6 @@
 import os
 import time
+import math
 from termcolor import colored
 
 class Canvas:
@@ -31,9 +32,9 @@ class TerminalScribe:
         self.pos = [0, 0]
 
     def up(self):
-        pos = [self.pos[0], self.pos[1]-1]
+        pos = [0, -1]
         if not self.canvas.hitsWall(pos):
-            self.draw(pos)
+            self.forward(pos)
 
     def down(self):
         pos = [self.pos[0], self.pos[1]+1]
@@ -80,5 +81,5 @@ class TerminalScribe:
 canvas = Canvas(30, 30)
 scribe = TerminalScribe(canvas)
 
-scribe.drawSquare(20)
+scribe.drawSquare(5)
 
