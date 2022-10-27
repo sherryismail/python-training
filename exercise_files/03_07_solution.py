@@ -61,9 +61,9 @@ class TerminalScribe:
         self.direction = [-1, 0]
         self.forward()
     
-    #def diagonal(self):
-     #   self.direction = [1,1]
-      #  self.forward()
+    def diagonal(self):
+       self.direction = [1,1]
+       self.forward()
 
     def drawSquare(self, size):
         for i in range(size):
@@ -74,7 +74,8 @@ class TerminalScribe:
             self.left()
         for i in range(size):
             self.up()
-        #self.diagonal()
+        for i in range(size):
+            self.diagonal()
         
 
     def draw(self, pos):
@@ -87,6 +88,10 @@ class TerminalScribe:
 canvas = Canvas(10, 10)
 scribe = TerminalScribe(canvas)
 scribe.setDegrees(135)
-for i in range(30):
-    scribe.forward()
-
+scribe.drawSquare(5)
+# . . . . . .        
+# . .       .        
+# .   .     .        
+# .     .   .        
+# .       . .        
+# . . . . . *
