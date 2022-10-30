@@ -60,10 +60,36 @@ class TerminalScribe:
     def left(self):
         self.direction = [-1, 0]
         self.forward()
-    
-    def diagonal(self):
+
+    def diagonal_down_right(self):
        self.direction = [1,1]
        self.forward()
+    
+    def diagonal_up_right(self):
+       self.direction = [1,-1]
+       #x=1 so cursor moves right
+       #y=-1 so it moves up
+       self.forward()
+
+    def diagonal_up_left(self):
+       self.direction = [-1,-1]
+       self.forward()
+
+    def diagonal_down_left(self):
+       self.direction = [-1,1]
+       self.forward()
+
+    def drawDiamond(self, size):
+        for i in range(size):
+            self.down()
+        for i in range(size):
+            self.diagonal_up_right()
+        for i in range(size):
+            self.diagonal_down_right()
+        for i in range(size):
+            self.diagonal_down_left()
+        for i in range(size):
+            self.diagonal_up_left()
 
     def drawSquare(self, size):
         for i in range(size):
@@ -74,9 +100,6 @@ class TerminalScribe:
             self.left()
         for i in range(size):
             self.up()
-        for i in range(size):
-            self.diagonal()
-        
 
     def draw(self, pos):
         self.canvas.setPos(self.pos, self.trail)
@@ -89,6 +112,7 @@ canvas = Canvas(10, 10)
 scribe = TerminalScribe(canvas)
 scribe.setDegrees(135)
 scribe.drawSquare(5)
+scribe.drawDiamond(5)
 # . . . . . .        
 # . .       .        
 # .   .     .        
