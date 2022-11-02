@@ -95,10 +95,41 @@ class TerminalScribe:
         self.canvas.print()
         time.sleep(self.framerate)
 
+    def plotX(self, function):
+        for x in range(1, 2* self.canvas._x):#exceed limit to check bounce
+            pos = [x, function(x)]
+            if not self.canvas.hitsWall(pos):
+                self.draw(pos)
+            else:#TODO: bounce back from wall
+                pos = [x, function(x)]
+    
+    def drawAxis(self):
+        for n in range(1,self.canvas._x):
+            pos=[n, 0]
+            if n % 10 == 0:
+                self.canvas.setPos(pos, colored(n, 'blue'))
+            else:
+                self.canvas.setPos(pos, colored(self.trail, 'blue'))
+            self.canvas.print()
+            time.sleep(self.framerate)
+        for n in range(1,self.canvas._y):
+            pos=[0, n]
+            if n % 10 == 0:
+                self.canvas.setPos(pos, colored(n, 'blue'))
+            else:
+                self.canvas.setPos(pos, colored(self.trail, 'blue'))
+            self.canvas.print()
+            time.sleep(self.framerate)
 
-canvas = Canvas(30, 30)
+def sine(x):
+    return math.sin(x/3) * 4 + 10
+def cosine(x):
+    return math.cos(x/3) * 4 + 10
+
+canvas = Canvas(30, 15)
 scribe = TerminalScribe(canvas)
-scribe.setDegrees(150)
-scribe.forward(100)
+scribe.drawAxis()
+scribe.plotX(sine)
+scribe.plotX(cosine)
 
 

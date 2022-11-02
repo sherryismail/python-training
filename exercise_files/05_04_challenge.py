@@ -10,8 +10,18 @@ class Canvas:
         self._y = height
         self._canvas = [[' ' for y in range(self._y)] for x in range(self._x)]
 
+    def hitsVerticalWall(self, point):
+        return round(point[0]) < 0 or round(point[0]) >= self._x
+
+    def hitsHorizontalWall(self, point):
+        return round(point[1]) < 0 or round(point[1]) >= self._y
+
     def hitsWall(self, point):
-        return round(point[0]) < 0 or round(point[0]) >= self._x or round(point[1]) < 0 or round(point[1]) >= self._y
+        return self.hitsVerticalWall(point) or self.hitsHorizontalWall(point)
+    
+    def getReflection(self, point): # return an array
+        return [-1 if self.hitsVerticalWall(point) else 1, -1 if self.hitsHorizontalWall(point) else 1]
+        # val ^= 1 to flip 0/1
 
     def setPos(self, pos, mark):
         self._canvas[round(pos[0])][round(pos[1])] = mark
@@ -37,6 +47,13 @@ class TerminalScribe:
     def setDegrees(self, degrees):
         radians = (degrees/180) * math.pi 
         self.direction = [math.sin(radians), -math.cos(radians)]
+    
+    def setPosition(self, pos):
+        self.pos = pos
+    
+    def bounce(self, pos):
+        reflection = self.canvas.getReflection(pos)
+        self.direction = [self.direction[0] * reflection[0], self.direction[1] * reflection[1]]
 
     def up(self):
         self.direction = [0, -1]
@@ -53,21 +70,14 @@ class TerminalScribe:
     def left(self):
         self.direction = [-1, 0]
         self.forward()
-
+    
+    # New logic
     def forward(self):
         pos = [self.pos[0] + self.direction[0], self.pos[1] + self.direction[1]]
-        if not self.canvas.hitsWall(pos):
-            self.draw(pos)
-
-    def drawSquare(self, size):
-        for i in range(size):
-            self.right()
-        for i in range(size):
-            self.down()
-        for i in range(size):
-            self.left()
-        for i in range(size):
-            self.up()
+        if self.canvas.hitsWall(pos):
+            self.bounce(pos)
+            pos = [self.pos[0] + self.direction[0], self.pos[1] + self.direction[1]]
+        self.draw(pos)
 
     def draw(self, pos):
         self.canvas.setPos(self.pos, self.trail)
@@ -76,9 +86,9 @@ class TerminalScribe:
         self.canvas.print()
         time.sleep(self.framerate)
 
-canvas = Canvas(30, 30)
+canvas = Canvas(10, 10)
 scribe = TerminalScribe(canvas)
-scribe.setDegrees(135)
-for i in range(30):
+scribe.setDegrees(65)
+for i in range(1,50):
     scribe.forward()
 

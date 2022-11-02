@@ -70,7 +70,7 @@ class TerminalScribe:
         reflection = self.canvas.getReflection(pos)
         self.direction = [self.direction[0] * reflection[0], self.direction[1] * reflection[1]]
 
-    def forward(self, distance):
+    def forward(self, distance): # distance in the given soln
         for i in range(distance):
             pos = [self.pos[0] + self.direction[0], self.pos[1] + self.direction[1]]
             if self.canvas.hitsWall(pos):
@@ -96,7 +96,7 @@ class TerminalScribe:
         time.sleep(self.framerate)
 
 
-canvas = Canvas(30, 30)
+canvas = Canvas(10, 10)
 scribe = TerminalScribe(canvas)
 scribe.setDegrees(150)
 scribe.forward(100)
