@@ -3,7 +3,9 @@ import time
 from termcolor import colored
 import math 
 
-
+# graphing scribe, robot scribe
+# create interface with termcolor
+# allow users to set framerate, pos, and direction
 class Canvas:
     def __init__(self, width, height):
         self._x = width

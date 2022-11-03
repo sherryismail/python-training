@@ -106,18 +106,18 @@ class TerminalScribe:
     def drawAxis(self):
         for n in range(1,self.canvas._x):
             pos=[n, 0]
-            if n % 10 == 0:
+            if n % 5 == 0:
                 self.canvas.setPos(pos, colored(n, 'blue'))
-            else:
-                self.canvas.setPos(pos, colored(self.trail, 'blue'))
+            # else:
+            #     self.canvas.setPos(pos, colored(self.trail, 'blue'))
             self.canvas.print()
             time.sleep(self.framerate)
         for n in range(1,self.canvas._y):
             pos=[0, n]
-            if n % 10 == 0:
+            if n % 5 == 0:
                 self.canvas.setPos(pos, colored(n, 'blue'))
-            else:
-                self.canvas.setPos(pos, colored(self.trail, 'blue'))
+            # else:
+            #     self.canvas.setPos(pos, colored(self.trail, 'blue'))
             self.canvas.print()
             time.sleep(self.framerate)
 
