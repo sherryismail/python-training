@@ -3,7 +3,6 @@ import time
 from termcolor import colored, COLORS
 import math 
 import random
-import threading
 
 class TerminalScribeException(Exception):
     def __init__(self, message=''):
@@ -17,8 +16,8 @@ class Canvas:
         self._x = width
         self._y = height
         self._canvas = [[' ' for y in range(self._y)] for x in range(self._x)]
-        self.scribes = scribes # canvas receives scribes
-        self.framerate = framerate # canvas owns its framerate
+        self.scribes = scribes
+        self.framerate = framerate
 
     def hitsVerticalWall(self, point):
         return round(point[0]) < 0 or round(point[0]) >= self._x
@@ -41,18 +40,13 @@ class Canvas:
     def clear(self):
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    def go(self): # how many total moves to iterate through in each scribe
+    def go(self):
         max_moves = max([len(scribe.moves) for scribe in self.scribes])
         for i in range(max_moves):
             for scribe in self.scribes:
-                threads = []
-                if len(scribe.moves) > i: # assemble the args needed for each move and args 'self'
+                if len(scribe.moves) > i:
                     args = scribe.moves[i][1]+[self]
-                    # scribe.moves[i][0](*args)# call the func pointer 'moves[i][0]()' and pass args
-                    threads.append(threading.Thread(target=scribe.moves[i][0], args=args))
-                [thread.start() for thread in threads]
-                [thread.join() for thread in threads]
-                    
+                    scribe.moves[i][0](*args)
             self.print()
             time.sleep(self.framerate)
 
@@ -73,9 +67,9 @@ class CanvasAxis(Canvas):
     def print(self):
         self.clear()
         for y in range(self._y):
-            print(colored(self.formatAxisNumber(y) + ' '.join([col[y] for col in self._canvas]), 'blue'))
-         # reached bottom of canvas, print x-axis
-        print(colored(' '.join([self.formatAxisNumber(x) for x in range(self._x)]),'blue'))
+            print(self.formatAxisNumber(y) + ' '.join([col[y] for col in self._canvas]))
+
+        print(' '.join([self.formatAxisNumber(x) for x in range(self._x)]))
 
 def is_number(val):
     try:
@@ -85,13 +79,12 @@ def is_number(val):
         return False
 
 class TerminalScribe:
-    def __init__(self, color='red', mark='*', trail='.', pos=(0, 0), framerate=.05, degrees=135, trailColor='white'):
+    def __init__(self, color='red', mark='*', trail='.', pos=(0, 0), framerate=.05, degrees=135):
         self.moves = []
 
         if len(str(trail)) != 1:
             raise InvalidParameter('Trail must be a single character')
         self.trail = str(trail)
-        self.trailColor = trailColor
         
         if len(str(mark)) != 1:
             raise InvalidParameter('Mark must be a single character')
@@ -137,18 +130,18 @@ class TerminalScribe:
         self.direction = [self.direction[0] * reflection[0], self.direction[1] * reflection[1]]
 
     def forward(self, distance=1):
-        def _forward(self, canvas): # _func nested internal function. Do not use directly.
+        def _forward(self, canvas):
             pos = [self.pos[0] + self.direction[0], self.pos[1] + self.direction[1]]
             if canvas.hitsWall(pos):
                 self.bounce(pos, canvas)
                 pos = [self.pos[0] + self.direction[0], self.pos[1] + self.direction[1]]
             self.draw(pos, canvas)
         
-        for i in range(distance): # add a function and arguments to func, as a set of moves
-            self.moves.append((_forward, [self]))# canvas not passed here because parent func '_forward' adds it
+        for i in range(distance):
+            self.moves.append((_forward, [self]))
 
     def draw(self, pos, canvas):
-        canvas.setPos(self.pos, colored(self.trail, self.trailColor))
+        canvas.setPos(self.pos, self.trail)
         self.pos = pos
         canvas.setPos(self.pos, colored(self.mark, self.color))
 
@@ -162,8 +155,8 @@ class PlotScribe(TerminalScribe):
     def plotX(self, function):
         self.x = self.domain[0]
 
-        def _plotX(self, function, canvas):# when _plotX is passed to append(), canvas was not passed to it.
-            pos = [self.x, function(self.x)] # this will get added by parent canvas itself when scribes are passed to Canvas
+        def _plotX(self, function, canvas):
+            pos = [self.x, function(self.x)]
             if not canvas.hitsWall(pos):
                 self.draw(pos, canvas)
             self.x = self.x + 1
@@ -172,9 +165,6 @@ class PlotScribe(TerminalScribe):
             self.moves.append((_plotX, [self, function]))
 
 class RobotScribe(TerminalScribe):
-    def __init__(self,**kwargs):#kwargs for trail=, color=:
-        super().__init__(**kwargs)
-
     def up(self, distance=1):
         self.setDirection([0, -1])
         self.forward(distance)
@@ -190,81 +180,17 @@ class RobotScribe(TerminalScribe):
     def left(self, distance=1):
         self.setDirection([-1, 0])
         self.forward(distance)
-    
-    def diagonal_down_right(self, distance=1):
-        self.setDirection([1,1])
-        self.forward(distance)
-    
-    def diagonal_up_right(self, distance=1):
-        self.setDirection([1,-1]) #x=1 so cursor moves right
-        self.forward(distance)#y=-1 so it moves up
-    
-    def diagonal_up_left(self, distance=1):
-        self.setDirection([-1,-1])
-        self.forward(distance)
 
-    def diagonal_down_left(self, distance=1):
-        self.setDirection([-1,1])
-        self.forward(distance)
- 
-class RegularShapes(RobotScribe):
-    def __init__(self,*args, **kwargs):#kwargs for trail=, color=:
-        super().__init__(*args, **kwargs)
     def drawSquare(self, size):
         self.right(size)
         self.down(size)
         self.left(size)
         self.up(size)
 
-    def drawDiamond(self, size):
-        self.diagonal_up_right(size)
-        self.diagonal_down_right(size)
-        self.diagonal_down_left(size)
-        self.diagonal_up_left(size)
-
-class RandomShapes(RobotScribe, TerminalScribe):
-    def __init__(self,scribes,*args, **kwargs):#kwargs for trail=, color=:
-        super().__init__(*args, **kwargs)
-        self.scribes = scribes
-    
-    def unpackDictionary(self):
-        for info in self.scribes:
-            print(info['name'])
-            self.flattenInstructions(scribeData=info)
-
-    def flattenInstructions(self, scribeData):
-        scribeData['instructions_flat'] = []
-        for instruction in scribeData['instructions']:
-            scribeData['instructions_flat'] = scribeData['instructions_flat'] + [instruction['direction']]*instruction['duration']
-            # append to the instrcutions_flat list, each direction as a string, multiplied by duration times
-
-        for i in range(len(scribeData['instructions_flat'])):
-            if scribeData['instructions_flat'][i] == 'forward':
-                self.forward() # instead of scribeData['name'].forward(1)
-            if scribeData['instructions_flat'][i] == 'up':
-                self.up()
-            elif scribeData['instructions_flat'][i] == 'down':
-                self.down()
-            elif scribeData['instructions_flat'][i] == 'left':
-                self.left()
-            elif scribeData['instructions_flat'][i] == 'right':
-                self.right()
-            if scribeData['instructions_flat'][i] == 'diagonal_up_right':
-                self.diagonal_up_right()
-            elif scribeData['instructions_flat'][i] == 'diagonal_down_right':
-                self.diagonal_down_right()
-            elif scribeData['instructions_flat'][i] == 'diagonal_up_left':
-                self.diagonal_up_left()
-            elif scribeData['instructions_flat'][i] == 'diagonal_down_left':
-                self.diagonal_down_left()
-            
-        print(len(scribeData['instructions_flat']))
-        time.sleep(2)
-
 class RandomWalkScribe(TerminalScribe):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs) 
-        self.degrees = kwargs.get('degrees', 135) # .get() from kwargs list, to be set at init time
+        super().__init__(**kwargs)
+        self.degrees = kwargs.get('degrees', 135)
     
     def randomizeDegrees(self):
         def _randomizeDegrees(self, _):
@@ -305,40 +231,16 @@ def circleBottom(x):
     if x > center - radius and x < center + radius:
         return center+math.sqrt(radius**2 - (x-center)**2)
 
-
-randomScribes = [
-    {'name': 'randomwalk',
-    'degrees':45,
-    'position': [0,0],
-    'instructions': [
-        {'direction':'forward', 'duration':50},
-        ],
-      },
-    {'name': 'zigzag',
-    'degrees':30,
-    'position': [20,10],
-    'instructions': [
-        {'direction':'diagonal_up_left', 'duration':3},
-        {'direction':'diagonal_down_left', 'duration':3},
-        {'direction':'diagonal_up_left', 'duration':3},
-        {'direction':'diagonal_down_left', 'duration':3},
-        {'direction':'diagonal_up_left', 'duration':3},
-        {'direction':'diagonal_down_left', 'duration':3}
-        ],
-      }
-    ]
 scribe1 = TerminalScribe(color='green')
 scribe1.forward(100)
-scribe2 = RegularShapes(color='yellow', pos=[20,20])
-scribe2.drawDiamond(10)
+scribe2 = RobotScribe(color='yellow')
+scribe2.drawSquare(20)
 scribe3 = PlotScribe(domain=[0, 40], color='cyan')
 scribe3.plotX(sine)
-scribe4 = RandomWalkScribe(trail='-', trailColor='magenta')
-scribe4.forward(100)
+scribe4 = RandomWalkScribe(color='red')
+scribe4.forward(1000)
 scribe5 = RandomWalkScribe(color='blue')
-scribe5.forward(100)
-scribe6 = RandomShapes(trailColor='red',trail='+', scribes=randomScribes)
-scribe6.unpackDictionary()
-canvas = CanvasAxis(40, 40, scribes=[scribe1, scribe2, scribe3, scribe4, scribe5, scribe6])
+scribe5.forward(1000)
+canvas = CanvasAxis(40, 40, scribes=[scribe1, scribe2, scribe3, scribe4, scribe5])
 canvas.go()
 
