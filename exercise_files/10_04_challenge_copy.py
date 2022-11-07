@@ -3,8 +3,7 @@ import time
 from termcolor import colored, COLORS
 import math 
 import random
-import threading
-import json
+from threading import Thread
 from inspect import getmembers, ismethod
 
 class TerminalScribeException(Exception):
@@ -76,10 +75,9 @@ class Canvas:
         for i in range(max_moves):
             for scribe in self.scribes:
                 threads = []
-                if len(scribe.moves) > i: # assemble the args needed for each move and args 'self'
+                if len(scribe.moves) > i:
                     args = scribe.moves[i][1]+[self]
-                    # scribe.moves[i][0](*args)# call the func pointer 'moves[i][0]()' and pass args
-                    threads.append(threading.Thread(target=scribe.moves[i][0], args=args))
+                    threads.append(Thread(target=scribe.moves[i][0], args=args))
                 [thread.start() for thread in threads]
                 [thread.join() for thread in threads]
             self.print()
@@ -89,17 +87,6 @@ class Canvas:
         self.clear()
         for y in range(self._y):
             print(' '.join([col[y] for col in self._canvas]))
-    
-    def toFile(self,name):
-        with open(name+'.json','w') as f:
-            f.write(json.dumps(self.toDict()))
-
-    def fromFile(name): # static method so no 'self' arg
-        with open(name+'.json','r') as f:
-            try:
-                return Canvas.fromDict(json.loads(f.readline()))
-            except:
-                raise InvalidParameter(f'File {name}.json is not in correct format')
 
 class CanvasAxis(Canvas):
     # Pads 1-digit numbers with an extra space
@@ -113,13 +100,12 @@ class CanvasAxis(Canvas):
     def print(self):
         self.clear()
         for y in range(self._y):
-            print(colored(self.formatAxisNumber(y) + ' '.join([col[y] for col in self._canvas]), 'blue'))
-         # reached bottom of canvas, print x-axis
+            print(self.formatAxisNumber(y) + ' '.join([col[y] for col in self._canvas]))
 
-        print(colored(' '.join([self.formatAxisNumber(x) for x in range(self._x)]),'blue'))
+        print(' '.join([self.formatAxisNumber(x) for x in range(self._x)]))
 
 class TerminalScribe:
-    def __init__(self, color='red', mark='*', trail='.', pos=(0, 0), degrees=135, trailColor='red'):
+    def __init__(self, color='red', mark='*', trail='.', pos=(0, 0), degrees=135):
         self.moves = []
 
         if color not in COLORS:
@@ -133,10 +119,6 @@ class TerminalScribe:
         if len(str(trail)) != 1:
             raise InvalidParameter('Trail must be a single character')
         self.trail = str(trail)
-
-        if trailColor not in COLORS:
-            raise InvalidParameter(f'Color {trailColor} is not from the list ({",".join(list(COLORS.keys()))})')   
-        self.trailColor = trailColor
         
         if len(pos) != 2 or not is_number(pos[0])or not is_number(pos[1]):
             raise InvalidParameter('Position must be two numeric values (x, y)')
@@ -152,9 +134,8 @@ class TerminalScribe:
             'color': self.color,
             'mark': self.mark,
             'trail': self.trail,
-            'trailColor': self.trailColor,
             'pos': self.pos,
-            'moves': [[move[0].__name__, move[1]] for move in self.moves]#move[0]= func, move[1] = args
+            'moves': [[move[0].__name__, move[1]] for move in self.moves]
         }
 
     def fromDict(data):
@@ -162,16 +143,15 @@ class TerminalScribe:
             color=data.get('color'),
             mark=data.get('mark'),
             trail=data.get('trail'),
-            trailColor=data.get('trailColor'),
             pos=data.get('pos'),
             )
         scribe.moves = scribe._movesFromDict(data.get('moves'))
         return scribe
 
-    def _movesFromDict(self, movesData): # bind the moves to the scribes as func, not just the string
+    def _movesFromDict(self, movesData):
         bound_methods = {key: val for key, val in getmembers(self, predicate=ismethod)}
-        return [[bound_methods[name], args] for name, args in movesData] # advanced
-    # TypeError: Object of type function is not JSON serializable
+        return [[bound_methods[name], args] for name, args in movesData]
+
     def _setPosition(self, pos, _):
         self.pos = pos
 
@@ -210,7 +190,7 @@ class TerminalScribe:
             self.moves.append((self._forward, []))
 
     def draw(self, pos, canvas):
-        canvas.setPos(self.pos, colored(self.trail, self.trailColor))
+        canvas.setPos(self.pos, self.trail)
         self.pos = pos
         canvas.setPos(self.pos, colored(self.mark, self.color))
 
@@ -232,11 +212,9 @@ class PlotScribe(TerminalScribe):
             color=data.get('color'),
             mark=data.get('mark'),
             trail=data.get('trail'),
-            trailColor=data.get('trailColor'),
             pos=data.get('pos'),
             domain=data.get('domain'),
         )
-        scribe.moves = scribe._movesFromDict(data.get('moves'))
         scribe.x = data.get('x')
         return scribe
 
@@ -249,9 +227,9 @@ class PlotScribe(TerminalScribe):
     def plotX(self, function):
         self.x = self.domain[0]
         for x in range(self.domain[0], self.domain[1]):
-            self.moves.append((self._plotX, []))# error [function] TODO
+            self.moves.append((self._plotX, [function]))
 
-class RobotScribe(TerminalScribe):    
+class RobotScribe(TerminalScribe):
     def up(self, distance=1):
         self.setDirection([0, -1])
         self.forward(distance)
@@ -267,76 +245,12 @@ class RobotScribe(TerminalScribe):
     def left(self, distance=1):
         self.setDirection([-1, 0])
         self.forward(distance)
-    
-    def diagonal_down_right(self, distance=1):
-        self.setDirection([1,1])
-        self.forward(distance)
-    
-    def diagonal_up_right(self, distance=1):
-        self.setDirection([1,-1]) #x=1 so cursor moves right
-        self.forward(distance)#y=-1 so it moves up
-    
-    def diagonal_up_left(self, distance=1):
-        self.setDirection([-1,-1])
-        self.forward(distance)
 
-    def diagonal_down_left(self, distance=1):
-        self.setDirection([-1,1])
-        self.forward(distance)
-
-class RegularShapes(RobotScribe):
-    def __init__(self,*args, **kwargs):#kwargs for trail=, color=:
-        super().__init__(*args, **kwargs)
     def drawSquare(self, size):
         self.right(size)
         self.down(size)
         self.left(size)
         self.up(size)
-
-    def drawDiamond(self, size):
-        self.diagonal_up_right(size)
-        self.diagonal_down_right(size)
-        self.diagonal_down_left(size)
-        self.diagonal_up_left(size)
-
-class RandomShapes(RobotScribe, TerminalScribe):
-    def __init__(self,scribes,*args, **kwargs):#kwargs for trail=, color=:
-        super().__init__(*args, **kwargs)
-        self.scribes = scribes
-    
-    def unpackDictionary(self):
-        for info in self.scribes:
-            print(info['name'])
-            self.flattenInstructions(scribeData=info)
-
-    def flattenInstructions(self, scribeData):
-        scribeData['instructions_flat'] = []
-        for instruction in scribeData['instructions']:
-            scribeData['instructions_flat'] = scribeData['instructions_flat'] + [instruction['direction']]*instruction['duration']
-            # append to the instrcutions_flat list, each direction as a string, multiplied by duration times
-
-        for i in range(len(scribeData['instructions_flat'])):
-            if scribeData['instructions_flat'][i] == 'forward':
-                self.forward() # instead of scribeData['name'].forward(1)
-            if scribeData['instructions_flat'][i] == 'up':
-                self.up()
-            elif scribeData['instructions_flat'][i] == 'down':
-                self.down()
-            elif scribeData['instructions_flat'][i] == 'left':
-                self.left()
-            elif scribeData['instructions_flat'][i] == 'right':
-                self.right()
-            if scribeData['instructions_flat'][i] == 'diagonal_up_right':
-                self.diagonal_up_right()
-            elif scribeData['instructions_flat'][i] == 'diagonal_down_right':
-                self.diagonal_down_right()
-            elif scribeData['instructions_flat'][i] == 'diagonal_up_left':
-                self.diagonal_up_left()
-            elif scribeData['instructions_flat'][i] == 'diagonal_down_left':
-                self.diagonal_down_left()
-            
-        print(len(scribeData['instructions_flat']))
-        time.sleep(2)
 
 class RandomWalkScribe(TerminalScribe):
     def __init__(self, **kwargs):
@@ -382,44 +296,10 @@ def circleBottom(x):
     if x > center - radius and x < center + radius:
         return center+math.sqrt(radius**2 - (x-center)**2)
 
-randomScribes = [
-    {'name': 'randomwalk',
-    'degrees':45,
-    'position': [0,0],
-    'instructions': [
-        {'direction':'forward', 'duration':50},
-        ],
-      },
-    {'name': 'zigzag',
-    'degrees':30,
-    'position': [20,10],
-    'instructions': [
-        {'direction':'diagonal_up_left', 'duration':3},
-        {'direction':'diagonal_down_left', 'duration':3},
-        {'direction':'diagonal_up_left', 'duration':3},
-        {'direction':'diagonal_down_left', 'duration':3},
-        {'direction':'diagonal_up_left', 'duration':3},
-        {'direction':'diagonal_down_left', 'duration':3}
-        ],
-      }
-    ]
+scribe = TerminalScribe(color='green')
+scribe.forward(10)
+robotScribe = RobotScribe(color='yellow')
+robotScribe.drawSquare(20)
 
-scribe1 = TerminalScribe(color='green')
-scribe1.forward(100)
-scribe2 = RegularShapes(color='yellow', pos=[15,15])
-scribe2.drawDiamond(10)
-scribe3 = PlotScribe(domain=[0, 20], color='cyan')
-scribe3.plotX(sine) #TODO
-scribe4 = RandomWalkScribe(trail='-', trailColor='magenta')
-scribe4.forward(100)
-scribe5 = RandomWalkScribe(color='blue')
-scribe5.forward(100)
-# scribe6 = RandomShapes(trailColor='red',trail='+', scribes=randomScribes)
-# scribe6.unpackDictionary() #TODO
-
-canvas1 = CanvasAxis(30, 30, scribes=[scribe1, scribe2, scribe3, scribe4, scribe5])
-canvas1.toFile('exercise_files/mysolution')
-
-canvas2 = CanvasAxis.fromFile('exercise_files/mysolution')
-canvas2.go()
+canvas = CanvasAxis(40, 40, scribes=[scribe, robotScribe])
 

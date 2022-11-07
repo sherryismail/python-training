@@ -1,6 +1,7 @@
 import time
 import threading
 from multiprocess import Process
+import csv
 
 def longSquare(num, results):
     results[num] = num**2 # if it was return n**2, thread won't hold result
@@ -35,3 +36,38 @@ processes = [Process(target=longSquare, args=(n,results)) for n in range(0, 10)]
 [p.start() for p in processes]
 [p.join() for p in processes]
 print(f'When 10 Processes run parallel: {results}')
+
+##################### CSV Reading
+import csv
+from itertools import islice
+with open('exercise_files/10_02_us.csv', 'r') as f:
+    reader = csv.reader(f, delimiter='\t')
+    next(reader)
+    next(reader)
+    for count,row in islice(enumerate(reader),1,10):#but how to limit 1,100
+        print(f'{count} ==> {row}')
+
+    ################# Open CSV and store dict
+with open('exercise_files/10_02_us.csv', 'r') as f:
+    data = list(csv.DictReader(f, delimiter='\t'))
+    #next(reader)##TypeError: '_csv.reader' object is not subscriptable
+    for row in islice(data,1,10):
+        print(row)
+
+primes = []
+
+for number in range(2, 99999):
+    for factor in range(2, int(number**0.5) + 1):
+        if number % factor == 0:
+            break
+    else:
+        primes.append(number)
+
+data = [row for row in data if int(row['postal code']) in primes and row['state code'] == 'MA']
+
+# Writing CSV
+with open('exercise_files/10_02_ma_prime_new.csv', 'w') as f:
+    writer = csv.writer(f)
+    for row in data:
+        writer.writerow([row['place name'], row['county']])#default delimiter is comma
+        print(row)
