@@ -1,4 +1,4 @@
-
+#this is a part of the package
 def isPrime(n, foundPrimes=None):
     foundPrimes = range(2, int(n**0.5)) if foundPrimes is None else foundPrimes
     for factor in foundPrimes:
