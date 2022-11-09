@@ -3,9 +3,9 @@ import time
 from termcolor import colored, COLORS
 import math 
 import random
-import threading
-import json
+from threading import Thread
 from inspect import getmembers, ismethod
+import json
 
 class TerminalScribeException(Exception):
     def __init__(self, message=''):
@@ -50,6 +50,17 @@ class Canvas:
         canvas._canvas = data.get('canvas')
         return canvas
 
+    def toFile(self, name):
+        with open(name+'.json', 'w') as f:
+            f.write(json.dumps(self.toDict()))
+
+    def fromFile(name): # static method so no 'self' arg
+        with open(name+'.json', 'r') as f:
+            try:
+                return Canvas.fromDict(json.loads(f.readline()))
+            except:
+                raise TerminalScribeException('File {}.json is not a valid Scribe file'.format(name))
+
     def hitsVerticalWall(self, point):
         return round(point[0]) < 0 or round(point[0]) >= self._x
 
@@ -79,7 +90,7 @@ class Canvas:
                 if len(scribe.moves) > i: # assemble the args needed for each move and args 'self'
                     args = scribe.moves[i][1]+[self]
                     # scribe.moves[i][0](*args)# call the func pointer 'moves[i][0]()' and pass args
-                    threads.append(threading.Thread(target=scribe.moves[i][0], args=args))
+                    threads.append(Thread(target=scribe.moves[i][0], args=args))
                 [thread.start() for thread in threads]
                 [thread.join() for thread in threads]
             self.print()
@@ -90,17 +101,6 @@ class Canvas:
         for y in range(self._y):
             print(' '.join([col[y] for col in self._canvas]))
     
-    def toFile(self,name):
-        with open(name+'.json','w') as f:
-            f.write(json.dumps(self.toDict()))
-
-    def fromFile(name): # static method so no 'self' arg
-        with open(name+'.json','r') as f:
-            try:
-                return Canvas.fromDict(json.loads(f.readline()))
-            except:
-                raise InvalidParameter(f'File {name}.json is not in correct format')
-
 class CanvasAxis(Canvas):
     # Pads 1-digit numbers with an extra space
     def formatAxisNumber(self, num):
