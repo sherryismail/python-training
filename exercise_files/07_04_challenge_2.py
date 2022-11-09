@@ -122,10 +122,17 @@ class RobotScribe(TerminalScribe):
 
 class PlotScribe(TerminalScribe):
     def plotX(self, function):
-        for x in range(self.canvas._x):
+        for x in range(1, 2*self.canvas._x - 1):#exceed limit to check bounce
             pos = [x, function(x)]
             if pos[1] and not self.canvas.hitsWall(pos):
                 self.draw(pos)
+            else:# bounce back from axis wall
+                try:
+                    super().bounce(pos)
+                    new_pos = [int(self.canvas._x - (x %self.canvas._x) -1), function((x %self.canvas._x))]
+                    self.draw(new_pos)
+                except Exception as e:
+                    print(e)
 
 class RegularShapes(RobotScribe):
     def drawSquare(self, size):
@@ -173,7 +180,7 @@ def circleTop(x):
 
 def circleBottom(x):
     radius = 10
-    center = 20
+    center = 10
     if x > center - radius and x < center + radius:
         return center+math.sqrt(radius**2 - (x-center)**2)
 
@@ -203,6 +210,7 @@ randomScribes = [
 canvas = CanvasAxis(30, 30)
 scribe = PlotScribe(canvas, color='green',trail='-', trailColor='magenta')
 scribe.plotX(sine)
+scribe.plotX(cosine)
 #scribe.plotX(circleTop)
 scribe.plotX(circleBottom)
 shape = RegularShapes(canvas, trailColor='red',color='green',user_pos=[10,10])

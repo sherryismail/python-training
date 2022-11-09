@@ -96,12 +96,10 @@ class TerminalScribe:
         time.sleep(self.framerate)
 
     def plotX(self, function):
-        for x in range(1, 2* self.canvas._x):#exceed limit to check bounce
+        for x in range(1, self.canvas._x):
             pos = [x, function(x)]
             if not self.canvas.hitsWall(pos):
                 self.draw(pos)
-            else:#TODO: bounce back from wall
-                pos = [x, function(x)]
     
     def drawAxis(self):
         for n in range(1,self.canvas._x):
