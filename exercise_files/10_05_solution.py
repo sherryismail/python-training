@@ -227,6 +227,7 @@ class PlotScribe(TerminalScribe):
             pos=data.get('pos'),
             domain=data.get('domain'),
         )
+        scribe.moves = scribe._movesFromDict(data.get('moves'))#important, missing before
         scribe.x = data.get('x')
         return scribe
 
@@ -239,7 +240,8 @@ class PlotScribe(TerminalScribe):
     def plotX(self, function):
         self.x = self.domain[0]
         for x in range(self.domain[0], self.domain[1]):
-            self.moves.append((self._plotX, [function]))
+            self.moves.append((self._plotX, [function]))#Not JSON serialisable
+            #pass [pos], not function(x) or a function pointer
 
 class RobotScribe(TerminalScribe):
     def up(self, distance=1):
@@ -308,13 +310,15 @@ def circleBottom(x):
     if x > center - radius and x < center + radius:
         return center+math.sqrt(radius**2 - (x-center)**2)
 
-scribe = TerminalScribe(color='green')
-scribe.forward(10)
+scribe = TerminalScribe(color='green', trail='>')
+scribe.forward(30)
 robotScribe = RobotScribe(color='yellow')
 robotScribe.drawSquare(20)
 
-canvas = CanvasAxis(30, 30, scribes=[scribe, robotScribe])
+scribe2 = RandomWalkScribe(trail='-', color='magenta', degrees=55)
+scribe2.forward(60)
 
+canvas = CanvasAxis(30, 30, scribes=[scribe, robotScribe, scribe2])
 canvas.toFile('solution_file')
 
 newCanvas = Canvas.fromFile('solution_file')

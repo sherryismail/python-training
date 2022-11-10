@@ -166,6 +166,18 @@ class PlotScribe(TerminalScribe):
             pos = [self.x, function(self.x)] # this will get added by parent canvas itself when scribes are passed to Canvas
             if not canvas.hitsWall(pos):
                 self.draw(pos, canvas)
+            else:# bounce back from axis wall
+                try:
+                    super().bounce(pos, canvas)
+                    if int(self.x/canvas._x) % 2 == 0: #if y=0 or y=MAX wall
+                        horizontal = self.x%canvas._x
+                        self.x = horizontal # back to normal
+                    else:
+                        horizontal = int(canvas._x - (self.x %canvas._x) -1)
+                    new_pos = [horizontal, function((self.x %canvas._x))]
+                    self.draw(new_pos, canvas)
+                except Exception as e:
+                    print(e)
             self.x = self.x + 1
         
         for x in range(self.domain[0], self.domain[1]):
@@ -331,7 +343,7 @@ scribe1 = TerminalScribe(color='green')
 scribe1.forward(100)
 scribe2 = RegularShapes(color='yellow', pos=[20,20])
 scribe2.drawDiamond(10)
-scribe3 = PlotScribe(domain=[0, 40], color='cyan')
+scribe3 = PlotScribe(domain=[0, 100], color='cyan')
 scribe3.plotX(sine)
 scribe4 = RandomWalkScribe(trail='-', trailColor='magenta')
 scribe4.forward(100)

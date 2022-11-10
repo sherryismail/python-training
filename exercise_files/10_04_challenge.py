@@ -46,6 +46,9 @@ class Canvas:
         }
 
     def fromDict(data):
+        # print('canvas name='+globals()[data.get('classname')].__name__)
+        # for scribe in data.get('scribes'): #debug prints
+        #     print('scribe name='+scribe.get('classname'))
         canvas = globals()[data.get('classname')](data.get('x'), data.get('y'), scribes=[globals()[scribe.get('classname')].fromDict(scribe) for scribe in data.get('scribes')])
         canvas._canvas = data.get('canvas')
         return canvas
@@ -89,6 +92,8 @@ class Canvas:
                 threads = []
                 if len(scribe.moves) > i: # assemble the args needed for each move and args 'self'
                     args = scribe.moves[i][1]+[self]
+                    # print(f'{scribe.moves[i][0].__name__} and {scribe.moves[i][1]}') #print the classname of scribe
+                    # print(f'Total scibes= {len(self.scribes)}')
                     # scribe.moves[i][0](*args)# call the func pointer 'moves[i][0]()' and pass args
                     threads.append(Thread(target=scribe.moves[i][0], args=args))
                 [thread.start() for thread in threads]
@@ -169,9 +174,11 @@ class TerminalScribe:
         return scribe
 
     def _movesFromDict(self, movesData): # bind the moves to the scribes as func, not just the string
+        # for key, val in getmembers(self, predicate=ismethod):
+        #     print(key+' <-key:val->'+str(type(val)))
         bound_methods = {key: val for key, val in getmembers(self, predicate=ismethod)}
         return [[bound_methods[name], args] for name, args in movesData] # advanced
-    # TypeError: Object of type function is not JSON serializable
+
     def _setPosition(self, pos, _):
         self.pos = pos
 
@@ -236,21 +243,33 @@ class PlotScribe(TerminalScribe):
             pos=data.get('pos'),
             domain=data.get('domain'),
         )
-        scribe.moves = scribe._movesFromDict(data.get('moves'))
+        scribe.moves = scribe._movesFromDict(data.get('moves'))#important, missing before
         scribe.x = data.get('x')
         return scribe
 
-    def _plotX(self, function, canvas):
-        pos = [self.x, function(self.x)]
-        if not canvas.hitsWall(pos):
+    def _plotX(self, pos, canvas):
+        if canvas.hitsWall(pos): 
+            try:
+                super().bounce(pos, canvas)
+                if int(pos[0]/canvas._x) % 2 == 0: #if y=0, bounce forwards
+                    horizontal = pos[0] % canvas._x
+                    self.x = horizontal # back to normal
+                else: #or if y=MAX wall, bounce backwards
+                    horizontal = int(canvas._x - (pos[0] %canvas._x) -1)
+                new_pos = [horizontal, pos[1]]
+                self.draw(new_pos, canvas)
+            except Exception as e:
+                print(e)
+        else:
             self.draw(pos, canvas)
-        self.x = self.x + 1
+        # self.x = self.x + 1 #remove this because x is incremented from plotX()
 
     def plotX(self, function):
         self.x = self.domain[0]
         for x in range(self.domain[0], self.domain[1]):
-            self.moves.append((self._plotX, []))# error [function] TODO
-
+            pos = [x, function(x)]
+            self.moves.append((self._plotX, [pos]))# not (self._plotX, [function(x)]))
+        #TypeError: Object of type function is not JSON serializable if [function] or function[(x)]
 class RobotScribe(TerminalScribe):    
     def up(self, distance=1):
         self.setDirection([0, -1])
@@ -406,20 +425,19 @@ randomScribes = [
 
 scribe1 = TerminalScribe(color='green')
 scribe1.forward(100)
-scribe2 = RegularShapes(color='yellow', pos=[15,15])
+scribe2 = RegularShapes(color='yellow', pos=[10,10], trailColor='yellow')
 scribe2.drawDiamond(10)
-scribe3 = PlotScribe(domain=[0, 20], color='cyan')
-scribe3.plotX(sine) #TODO
+scribe3 = PlotScribe(domain=[0, 80], color='cyan', trailColor='green')
+scribe3.plotX(sine)
 scribe4 = RandomWalkScribe(trail='-', trailColor='magenta')
 scribe4.forward(100)
-scribe5 = RandomWalkScribe(color='blue')
+scribe5 = RandomWalkScribe(trail='=',color='blue')
 scribe5.forward(100)
 # scribe6 = RandomShapes(trailColor='red',trail='+', scribes=randomScribes)
 # scribe6.unpackDictionary() #TODO
 
 canvas1 = CanvasAxis(30, 30, scribes=[scribe1, scribe2, scribe3, scribe4, scribe5])
-canvas1.toFile('exercise_files/mysolution')
+canvas1.toFile('solution_my_10')
 
-canvas2 = CanvasAxis.fromFile('exercise_files/mysolution')
+canvas2 = Canvas.fromFile('solution_my_10')
 canvas2.go()
-
