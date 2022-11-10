@@ -3,5 +3,5 @@ node_modules
 .tmp
 npm-debug.log
 solution_file.json
-mysolution.json
+*.pyc
 

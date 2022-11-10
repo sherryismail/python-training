@@ -1,5 +1,5 @@
 from scribes.terminalScribe import TerminalScribe
-
+# only from terminalScribe import TerminalScribe gives error ModuleNotFoundError
 class PlotScribe(TerminalScribe):
 
     def __init__(self, domain, **kwargs):

@@ -1,10 +1,10 @@
 import os
 import time
-from threading import Thread
-import json 
+from threading import Thread 
+import json
 
 from errors import TerminalScribeException, InvalidParameter
-from utils import is_number 
+from utils import is_number
 
 class Canvas:
     def __init__(self, width, height, scribes=[], framerate=.05):
@@ -29,24 +29,27 @@ class Canvas:
             'canvas': self._canvas,
             'scribes': [scribe.toDict() for scribe in self.scribes]
         }
-    #static function. call as c = Canvas.fromDict()
+    #@staticmethod
     def fromDict(data, g):
+        # print('canvas name='+g[data.get('classname')].__name__)
+        # for scribe in data.get('scribes'): #debug prints
+        #     print('scribe name='+scribe.get('classname'))
         canvas = g[data.get('classname')](data.get('x'), data.get('y'), scribes=[g[scribe.get('classname')].fromDict(scribe, g) for scribe in data.get('scribes')])
         canvas._canvas = data.get('canvas')
-        print(type(canvas))
-        time.sleep(2)
         return canvas
-
+    
     def toFile(self, name):
         with open(name+'.json', 'w') as f:
             f.write(json.dumps(self.toDict()))
-     #TypeError: fromFile() takes 1 positional argument but 3 were given-> globals()
+    
+    #@staticmethod
     def fromFile(name, g):
+        # static method so no 'self' arg
         with open(name+'.json', 'r') as f:
             try:
                 return Canvas.fromDict(json.loads(f.readline()), g)
             except:
-                raise TerminalScribeException('File {}.json is not a valid Scribe file'.format(name))
+                raise TerminalScribeException('File {}.json is not a valid format'.format(name))
 
     def hitsVerticalWall(self, point):
         return round(point[0]) < 0 or round(point[0]) >= self._x
@@ -74,8 +77,11 @@ class Canvas:
         for i in range(max_moves):
             for scribe in self.scribes:
                 threads = []
-                if len(scribe.moves) > i:
+                if len(scribe.moves) > i: # assemble the args needed for each move and args 'self'
                     args = scribe.moves[i][1]+[self]
+                    # print(f'{scribe.moves[i][0].__name__} and {scribe.moves[i][1]}') #print the classname of scribe
+                    # print(f'Total scibes= {len(self.scribes)}')
+                    # scribe.moves[i][0](*args)# call the func pointer 'moves[i][0]()' and pass args
                     threads.append(Thread(target=scribe.moves[i][0], args=args))
                 [thread.start() for thread in threads]
                 [thread.join() for thread in threads]
